@@ -7,7 +7,6 @@ remote_gpu_client = None
 
 def encodearray(arr):
     shapearray = np.array(arr.shape)
-    print(arr.size * arr.itemsize)
     return [
         str(arr.dtype).encode("utf-8"),
         arr.tobytes(),

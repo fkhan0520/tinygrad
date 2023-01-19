@@ -11,7 +11,7 @@ port = "5556"
 context = zmq.Context()
 socket = context.socket(zmq.PAIR)
 # socket.setsockopt(zmq.SNDBUF, 256 * 1024)
-socket.connect(f"tcp://35.247.25.188:{port}")
+socket.connect(f"tcp://34.82.165.113:{port}")
 
 
 xshape = (4, 512, 21, 21)

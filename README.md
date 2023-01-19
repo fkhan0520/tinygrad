@@ -1,3 +1,48 @@
+# Remote GPUs + Tinygrad
+
+Testing a hypothesis I had that sending individual GPU ops over the network to a cloud GPU is faster than running a model with just a CPU. Started with sending only convolutions.
+
+This is like replacing the PCIe bus with a TCP socket so unsurprisingly results are still worse than running `TORCH=1` on the cpu machine. However this approach definitely beats out the default Numpy implementation in tinygrad (~3s vs ~24s). Even if network bandwidth increases a ton, using explicit vGPUs, like Nvidia GRID, is probably a cleaner approach.
+
+## Test setup:
+
+**CPU only machine:** n2 VM from gcloud (2 Cascade Lake Xeon CPUs)
+
+**GPU server:** Nvidia T4, n1 VM from gcloud (1 Skylake Xeon CPU)
+
+**Network:** 10G (default inter-VM bandwidth on gcloud)
+
+All results below are from the CPU-only machine:
+```
+$ REMOTEGPU=1 python examples/yolov3.py
+running inference…
+did inference in 3.31 s
+Detected bicycle 98.95%
+Detected truck 99.00%
+Detected dog 94.23%
+```
+
+vs
+
+```
+$ python examples/yolov3.py
+running inference…
+did inference in 24.23 s
+Detected bicycle 98.95%
+Detected truck 99.00%
+Detected dog 94.23%
+```
+
+vs
+
+```
+$ TORCH=1 python examples/yolov3.py
+did inference in 2.72 s
+Detected bicycle 98.95%
+Detected truck 99.00%
+Detected dog 94.23%
+```
+
 <p align="center">
   <img src="https://raw.githubusercontent.com/geohot/tinygrad/master/docs/logo.png">
 </p>
