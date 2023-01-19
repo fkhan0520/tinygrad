@@ -3,8 +3,7 @@ import operator
 import numpy as np
 from tinygrad.ops import UnaryOps, BinaryOps, ReduceOps, MovementOps, ProcessingOps, GenericExecAST
 from tinygrad.helpers import shape_to_axis
-
-i = 0
+from tinygrad.llops.helpers.remotegpu_client import get_remote_gpu_client
 
 class RemoteGPUBuffer(np.ndarray, GenericExecAST):
   fxn_for_op = {
@@ -41,12 +40,14 @@ class RemoteGPUBuffer(np.ndarray, GenericExecAST):
 
   def processing_op(x,op,w,C):
     assert op == ProcessingOps.CONV, f"{op} isn't supported"
-    import pickle
-    print(x.shape, w.shape, C._asdict())
-    pickle.dump((x,w,C), open("args.pkl", "wb"))
-    tx = x.movement_op(MovementOps.STRIDED, (
-      (C.bs, C.groups*C.cin*x.shape[2]*x.shape[3]), (C.groups, C.cin*x.shape[2]*x.shape[3]),
-      (C.oy, C.sy*x.shape[3]), (C.ox, C.sx), (C.cin, x.shape[2]*x.shape[3]), (C.H, C.dy*x.shape[3]), (C.W, C.dx)))
-    tw = w.reshape(C.groups, C.rcout, C.cin, C.H, C.W)
-    out = np.einsum("nGhwCHW, GkCHW -> nGkhw", tx.ravel().reshape(tx.shape), tw.ravel().reshape(tw.shape))
-    return out.reshape(C.bs, C.groups*C.rcout, C.oy, C.ox).view(RemoteGPUBuffer)
+    client = get_remote_gpu_client()
+    return client.runconv(x, w, C._asdict()).view(RemoteGPUBuffer)
+    # import pickle
+    # print(x.shape, w.shape, C._asdict())
+    # pickle.dump((x,w,C), open("args.pkl", "wb"))
+    # tx = x.movement_op(MovementOps.STRIDED, (
+    #   (C.bs, C.groups*C.cin*x.shape[2]*x.shape[3]), (C.groups, C.cin*x.shape[2]*x.shape[3]),
+    #   (C.oy, C.sy*x.shape[3]), (C.ox, C.sx), (C.cin, x.shape[2]*x.shape[3]), (C.H, C.dy*x.shape[3]), (C.W, C.dx)))
+    # tw = w.reshape(C.groups, C.rcout, C.cin, C.H, C.W)
+    # out = np.einsum("nGhwCHW, GkCHW -> nGkhw", tx.ravel().reshape(tx.shape), tw.ravel().reshape(tw.shape))
+    # return out.reshape(C.bs, C.groups*C.rcout, C.oy, C.ox).view(RemoteGPUBuffer)
